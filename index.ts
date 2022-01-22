@@ -1,14 +1,16 @@
 import { config } from 'dotenv';
 config();
 
-import { initialize as initializeDatabase } from './database';
+// import { initialize as initializeDatabase } from './database';
+import Canvas from 'discord-canvas';
 import { loadMessageCommands, loadSlashCommands } from './commands';
 
-import { Client, Intents } from 'discord.js';
+import { Client, Intents, MessageAttachment, TextChannel } from 'discord.js';
 const client = new Client({
     intents: [
         Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGES
+        Intents.FLAGS.GUILD_MESSAGES,
+        Intents.FLAGS.GUILD_MEMBERS
     ]
 });
 
@@ -47,12 +49,34 @@ client.on('messageCreate', (message) => {
 
 });
 
+client.on('guildMemberAdd', async (member) => {
+
+    const avatar = member.user.displayAvatarURL({ dynamic: false, format: 'png' });
+    const welcomer = new Canvas.Welcome();
+    welcomer.textMessage = 'Welcome to {server}';
+    welcomer.setUsername(member.user.username);
+    welcomer.setAvatar(avatar);
+    welcomer.setDiscriminator(member.user.discriminator);
+    welcomer.setMemberCount(member.guild.memberCount.toString());
+    welcomer.setBackground('https://media.discordapp.net/attachments/934122805316943924/934404793097670686/Baniere.png');
+    welcomer.setGuildName(member.guild.name);
+    const image = await welcomer.toAttachment();
+    const attachment = new MessageAttachment(image.toBuffer(), "welcome.png");
+    const channel = member.guild.channels.cache.get(process.env.WELCOME_CHANNEL!)! as TextChannel;
+    return void channel.send({
+        content: `Hey ${member}, welcome to **Kampios**! we hope you will enjoy your stay with us 👋`,
+        files: [attachment]
+    });
+
+});
+
+
 client.on('ready', () => {
     console.log(`Logged in as ${client.user!.tag}. Ready to serve ${client.users.cache.size} users in ${client.guilds.cache.size} servers 🚀`);
 
-    initializeDatabase().then(() => {
+    /*initializeDatabase().then(() => {
         console.log('Database initialized 📦');
-    });
+    });*/
 });
 
 client.login(process.env.DISCORD_CLIENT_TOKEN);
